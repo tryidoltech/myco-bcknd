@@ -17,16 +17,14 @@ exports.user = CatchAsyncErrors(async (req, res, next) => {
   res.json({ message: "This is user Data", userData });
 });
 exports.registerUser = CatchAsyncErrors(async (req, res, next) => {
-  if (req.body.role === "Owner") {
-    const owner = await new Owner(req.body).save();
-    sendToken(owner, 200, res);
-  } else {
-    const userModel = await new User(req.body).save();
-    sendToken(userModel, 200, res);
-  }
+  const userModel = await new User(req.body).save();
+  sendToken(userModel, 200, res);
 });
 exports.userData = CatchAsyncErrors(async (req, res, next) => {
-  const userModel = await User.findById(req.id).exec();
+  console.log('====================================');
+  console.log(req.user.id);
+  console.log('====================================');
+  const userModel = await User.findById(req.user.id).exec();
   res.json({
     userModel,
     authenticated: true,
@@ -40,12 +38,19 @@ exports.loginUser = CatchAsyncErrors(async (req, res, next) => {
   const isMatch = userModel.comparepassword(req.body.password);
 
   if (!isMatch) return next(new errorHanler("Wrong password", 500));
-
+ if(userModel.role !== "flatemate") return next(new errorHanler("Wrong Tenant Credentials", 500))
   sendToken(userModel, 201, res);
 });
 exports.signout = CatchAsyncErrors(async (req, res, next) => {
-  res.clearCookie("userToken");
-  res.json({ message: "Sign Out" });
+    res
+      .cookie("token", "", {
+        expires: new Date(Date.now()), // Immediate expiration
+        httpOnly: true,
+        // secure: true, // Uncomment if using HTTPS
+        sameSite: "None", // Adjust this as per your requirement
+      })
+      .status(200)
+      .json({ success: true, message: "Logged out successfully" });
 });
 exports.sendMail = CatchAsyncErrors(async (req, res, next) => {
   const userData = await User.findOne({ email: req.body.email }).exec();
@@ -117,16 +122,33 @@ exports.avatarupload = CatchAsyncErrors(async (req, res, next) => {
   await userData.save();
   res.json({ message: "Profile Image uploaded" });
 });
-exports.getAllListings = CatchAsyncErrors(async(req,res,next)=>{
+exports.getAllListings = CatchAsyncErrors(async (req, res, next) => {
   try {
     const listings = await Listing.find({
-      city:req.params.city
+      city: req.params.city,
     });
     res.send(200).json({
-      listings
-    })
+      listings,
+    });
   } catch (error) {
     res.json({
+      error,
+    });
+  }
+});
+exports.addListing = CatchAsyncErrors(async(req,res,next)=>{
+  try {
+    const listing = await new Listing(req.body);
+    const user = await User.findById(req.user.id);
+    user.listings.push(listing._id);
+    await user.save();
+    listing.user = user._id;
+    await listing.save();
+    res.status(201).json({
+      message:"Listing added succesfully"
+    })
+  } catch (error) {
+    res.status(400).json({
       error
     })
   }

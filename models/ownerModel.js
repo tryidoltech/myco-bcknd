@@ -3,54 +3,15 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const ownerModel = new mongoose.Schema(
   {
-    firstname: {
-      type: String,
-      required: [true, "First Name is required"],
-      minLength: [3, "First Name should must conatin atleat 3 characters"],
-    },
-    lastname: {
-      type: String,
-      required: [true, "Last Name is required"],
-      minLength: [4, "Last Name should must conatin atleat 4 characters"],
-    },
-    avatar: {
-      type: Object,
-      default: {
-        fileId: "",
-        url: "https://static.vecteezy.com/system/resources/previews/004/991/321/original/picture-profile-icon-male-icon-human-or-people-sign-and-symbol-vector.jpg",
-      },
-    },
-    email: {
-      type: String,
-      trim: true,
-      lowercase: true,
-      unique: true,
-      required: [true, "Email is required"],
-      match: [
-        /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/,
-        "Please fill a valid email address",
-      ],
-    },
-    role: {
-      type: String,
-      required: [true, "Role of the user is required"],
-      enum: ["Flatemate", "Owner"],
-    },
-    gender: {
-      type: String,
-      required: [true, "Gender is required"],
-      enum: ["Male", "Female", "Others"],
-    },
-    password: {
-      type: String,
-      select: false,
-      required: [true, "Password is required"],
-      minLength: [6, "Password must contain atleast 6 character"],
-    },
-    resetpasswordToken: {
-      type: String,
-      default: "0",
-    },
+    rooms: [{ 
+      type: mongoose.Schema.Types.ObjectId ,
+      ref:"Room"
+
+    }],
+    agreements: {
+      type: Array,
+      default: [],
+    }
   },
   { timestamps: true }
 );

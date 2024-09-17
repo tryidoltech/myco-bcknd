@@ -3,7 +3,7 @@ const express = require("express");
 const app = express()
 
 // db
-// require("./models/database.js").connectedDatabase()
+require("./models/database.js").connectedDatabase()
 // logger
 const logger = require("morgan");
 const allowedOrigins = ["http://localhost:5173"];

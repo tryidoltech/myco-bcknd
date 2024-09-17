@@ -34,7 +34,7 @@ const userModel = new mongoose.Schema(
     role: {
       type: String,
       required: [true, "Role of the user is required"],
-      enum: ["Flatemate", "Owner"],
+      enum: ["flatemate", "owner","admin","superAdmin"],
     },
     gender: {
       type: String,
@@ -65,8 +65,16 @@ const userModel = new mongoose.Schema(
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Listing",
+        required: function () {
+          return this.role === "Flatemate";
+        },
       },
     ],
+    rooms: [{ 
+      type: mongoose.Schema.Types.ObjectId ,
+      ref:"Room"
+
+    }],
     password: {
       type: String,
       select: false,

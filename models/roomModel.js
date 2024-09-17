@@ -45,6 +45,10 @@ const roomModel = new mongoose.Schema({
   description: {
     type: String,
   },
+  owner:{
+    type:mongoose.Schema.Types.ObjectId,
+    ref:"User"
+  }
 });
 
 const Room = mongoose.model("Room", roomModel);
