@@ -53,18 +53,24 @@ exports.signout = CatchAsyncErrors(async (req, res, next) => {
       .json({ success: true, message: "Logged out successfully" });
 });
 exports.sendMail = CatchAsyncErrors(async (req, res, next) => {
+try {
   const userData = await User.findOne({ email: req.body.email }).exec();
-  console.log(userData);
   if (!userData) {
     return next(new errorHanler("User with this email does not exist ", 404));
   }
-  const url = `http://localhost:3000/user/forgetlink/${userData._id}`;
+  const url = `http://localhost:5001/user/forgetlink/${userData._id}`;
   userData.resetpasswordToken = "1";
   userData.save();
-  console.log(userData.resetpasswordToken);
 
   sendmail(req, res, next, url);
-  res.json({ userData, url });
+} catch (error) {
+  console.log(error);
+  res.json({
+    error
+  })
+  
+}
+  // res.json({ url });
 });
 exports.changePassword = CatchAsyncErrors(async (req, res, next) => {
   const userData = await User.findById({ _id: req.params.id }).exec();
@@ -88,10 +94,8 @@ exports.changePassword = CatchAsyncErrors(async (req, res, next) => {
   }
 });
 exports.resetPassword = CatchAsyncErrors(async (req, res, next) => {
-  console.log(req.body);
   const userData = await User.findById({ _id: req.id }).select("+password");
   const isMatch = userData.comparepassword(req.body.oldpassword);
-  console.log(userData);
   if (!isMatch) return next(new errorHanler("Wrong password", 500));
   if (isMatch) {
     userData.password = req.body.newpassword;
@@ -107,9 +111,12 @@ exports.UpdateData = CatchAsyncErrors(async (req, res, next) => {
   res.status(200).json({ message: "user updated successfully" });
 });
 exports.avatarupload = CatchAsyncErrors(async (req, res, next) => {
-  const userData = await User.findById(req.id).exec();
+  const userData = await User.findById(req.user.id).exec();
 
   const file = req.files.avatar;
+console.log(file.name);
+console.log(userData);
+
   const modifiedFileName = `demoImage-${Date.now()}${path.extname(file.name)}`;
   if (userData.avatar.fileId !== "") {
     await imagekit.deleteFile(userData.avatar.fileId);

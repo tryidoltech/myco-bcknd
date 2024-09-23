@@ -28,10 +28,14 @@ router.post("/register", registerUser);
 router.post("/signin", loginUser);
 // GET SIGNOUT
 router.get("/logout", isAuthenticated, signout);
+// Send Maio
+router.post("/send/mail",sendMail)
 // reset password
 router.post("/reset/password", isAuthenticated, resetPassword);
 // password changed
 router.post("/forgetlink/:id", changePassword);
+// Upload Avatar
+router.post("/upload/avatar",isAuthenticated,authorizeRoles("flatemate"),avatarupload)
 // Get all listings of user
 router.get("/all/listings/:city", getAllListings);
 // Get all rooms
