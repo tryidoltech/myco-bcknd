@@ -13,6 +13,10 @@ const {
   loginUser,
   getAllListings,
   addListing,
+  deleteListing,
+  updateListing,
+  getListingById,
+  updateUserProfile,
 } = require("../controllers/indexController");
 const { isAuthenticated } = require("../middlewares/auth");
 const { authorizeRoles } = require("../jwt/sendToken");
@@ -29,13 +33,20 @@ router.post("/signin", loginUser);
 // GET SIGNOUT
 router.get("/logout", isAuthenticated, signout);
 // Send Maio
-router.post("/send/mail",sendMail)
+router.post("/send/mail", sendMail);
 // reset password
 router.post("/reset/password", isAuthenticated, resetPassword);
 // password changed
 router.post("/forgetlink/:id", changePassword);
 // Upload Avatar
-router.post("/upload/avatar",isAuthenticated,authorizeRoles("flatemate"),avatarupload)
+router.post(
+  "/upload/avatar",
+  isAuthenticated,
+  authorizeRoles("flatemate"),
+  avatarupload
+);
+// Update User Profile
+router.post("/update/profile/:id", isAuthenticated, updateUserProfile);
 // Get all listings of user
 router.get("/all/listings/:city", getAllListings);
 // Get all rooms
@@ -46,6 +57,21 @@ router.post(
   isAuthenticated,
   authorizeRoles("flatemate"),
   addListing
+);
+
+// delete listing
+router.get(
+  "/delete/listing/:id",
+  isAuthenticated,
+  authorizeRoles("flatemate"),
+  deleteListing
+);
+// Edit Listing
+router.post(
+  "/update/listing/:id",
+  isAuthenticated,
+  authorizeRoles("flatemate"),
+  updateListing
 );
 
 module.exports = router;

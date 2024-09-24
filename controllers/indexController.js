@@ -21,9 +21,6 @@ exports.registerUser = CatchAsyncErrors(async (req, res, next) => {
   sendToken(userModel, 200, res);
 });
 exports.userData = CatchAsyncErrors(async (req, res, next) => {
-  console.log('====================================');
-  console.log(req.user.id);
-  console.log('====================================');
   const userModel = await User.findById(req.user.id).exec();
   res.json({
     userModel,
@@ -38,38 +35,38 @@ exports.loginUser = CatchAsyncErrors(async (req, res, next) => {
   const isMatch = userModel.comparepassword(req.body.password);
 
   if (!isMatch) return next(new errorHanler("Wrong password", 500));
- if(userModel.role !== "flatemate") return next(new errorHanler("Wrong Tenant Credentials", 500))
+  // if (userModel.role !== "flatemate")
+  //   return next(new errorHanler("Wrong Tenant Credentials", 500));
   sendToken(userModel, 201, res);
 });
 exports.signout = CatchAsyncErrors(async (req, res, next) => {
-    res
-      .cookie("token", "", {
-        expires: new Date(Date.now()), // Immediate expiration
-        httpOnly: true,
-        // secure: true, // Uncomment if using HTTPS
-        sameSite: "None", // Adjust this as per your requirement
-      })
-      .status(200)
-      .json({ success: true, message: "Logged out successfully" });
+  res
+    .cookie("token", "", {
+      expires: new Date(Date.now()), // Immediate expiration
+      httpOnly: true,
+      // secure: true, // Uncomment if using HTTPS
+      sameSite: "None", // Adjust this as per your requirement
+    })
+    .status(200)
+    .json({ success: true, message: "Logged out successfully" });
 });
 exports.sendMail = CatchAsyncErrors(async (req, res, next) => {
-try {
-  const userData = await User.findOne({ email: req.body.email }).exec();
-  if (!userData) {
-    return next(new errorHanler("User with this email does not exist ", 404));
-  }
-  const url = `http://localhost:5001/user/forgetlink/${userData._id}`;
-  userData.resetpasswordToken = "1";
-  userData.save();
+  try {
+    const userData = await User.findOne({ email: req.body.email }).exec();
+    if (!userData) {
+      return next(new errorHanler("User with this email does not exist ", 404));
+    }
+    const url = `http://localhost:5001/user/forgetlink/${userData._id}`;
+    userData.resetpasswordToken = "1";
+    userData.save();
 
-  sendmail(req, res, next, url);
-} catch (error) {
-  console.log(error);
-  res.json({
-    error
-  })
-  
-}
+    sendmail(req, res, next, url);
+  } catch (error) {
+    console.log(error);
+    res.json({
+      error,
+    });
+  }
   // res.json({ url });
 });
 exports.changePassword = CatchAsyncErrors(async (req, res, next) => {
@@ -114,8 +111,8 @@ exports.avatarupload = CatchAsyncErrors(async (req, res, next) => {
   const userData = await User.findById(req.user.id).exec();
 
   const file = req.files.avatar;
-console.log(file.name);
-console.log(userData);
+  // console.log(file.name);
+  // console.log(userData);
 
   const modifiedFileName = `demoImage-${Date.now()}${path.extname(file.name)}`;
   if (userData.avatar.fileId !== "") {
@@ -128,6 +125,18 @@ console.log(userData);
   userData.avatar = { fileId, url };
   await userData.save();
   res.json({ message: "Profile Image uploaded" });
+});
+exports.updateUserProfile = CatchAsyncErrors(async (req, res, next) => {
+  try {
+    const user = await User.findByIdAndUpdate(req.params.id, req.body);
+    res.status(200).json({
+      user,
+    });
+  } catch (error) {
+    res.json({
+      error,
+    });
+  }
 });
 exports.getAllListings = CatchAsyncErrors(async (req, res, next) => {
   try {
@@ -143,20 +152,86 @@ exports.getAllListings = CatchAsyncErrors(async (req, res, next) => {
     });
   }
 });
-exports.addListing = CatchAsyncErrors(async(req,res,next)=>{
+exports.addListing = CatchAsyncErrors(async (req, res, next) => {
   try {
     const listing = await new Listing(req.body);
     const user = await User.findById(req.user.id);
+    const file = req.files.image;
+    if (file && file.length > 0) {
+      const singleimg = await Promise.all(
+        file.map(async (i) => {
+          const modifiedFileName = `roomImage-${Date.now()}${path.extname(
+            i.name
+          )}`;
+          const { fileId, url } = await imagekit.upload({
+            file: i.data,
+            fileName: modifiedFileName,
+          });
+          return { fileId, url };
+        })
+      );
+
+      listing.images.push(...singleimg);
+    }
+
     user.listings.push(listing._id);
     await user.save();
     listing.user = user._id;
     await listing.save();
     res.status(201).json({
-      message:"Listing added succesfully"
-    })
+      message: "Listing added succesfully",
+    });
   } catch (error) {
     res.status(400).json({
-      error
-    })
+      error,
+    });
   }
-})
+});
+
+exports.deleteListing = CatchAsyncErrors(async (req, res, next) => {
+  try {
+    const listing = await Listing.findById(req.params.id).populate("user");
+    const user = await User.findById(req.user.id).exec();
+    console.log(listing);
+
+    if (listing.user._id.toString() !== user._id.toString()) {
+      return res.status(404).json({
+        message: `Listing is not added by ${user.firstname} + ${user?.lastname}`,
+        success: false,
+      });
+    }
+    const filterList = user.listings.filter(
+      (i) => i._id.toString() !== listing._id.toString()
+    );
+    user.listings = filterList;
+    await user.save();
+
+    listing.images.forEach(async (i) => {
+      await imagekit.deleteFile(i.fileId);
+    });
+    const list = await Listing.findByIdAndDelete(req.params.id);
+    res.status(200).json({
+      message: "Listing Deleted Successfully",
+      success: true,
+    });
+  } catch (error) {
+    console.log(error);
+
+    res.json({
+      error,
+    });
+  }
+});
+exports.updateListing = CatchAsyncErrors(async (req, res, next) => {
+  try {
+    const listing = await Listing.findByIdAndUpdate(req.params.id, req.body);
+    res.status(200).json({
+      message: "Listing Details updated successfully",
+      success: true,
+    });
+  } catch (error) {
+    res.json({
+      error,
+    });
+  }
+});
