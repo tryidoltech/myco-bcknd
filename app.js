@@ -43,6 +43,7 @@ app.use("/api/v1/user",require("./routes/indexRoute.js"))
 app.use("/api/v1/owner",require("./routes/ownerRoute.js"))
 app.use("/api/v1/admin",require("./routes/adminRoutes.js"))
 app.use("/api/v1/other",require("./routes/otherRoute.js"))
+app.use("/api/v1/sales",require("./routes/salesRoutes.js"))
 // error handeling
 
 
